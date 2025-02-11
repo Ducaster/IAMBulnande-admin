@@ -1,0 +1,47 @@
+service: univ-verse-auth
+
+provider:
+  name: aws
+  runtime: nodejs22.x
+  region: ap-northeast-2
+  environment:
+    JWT_SECRET: ${env:JWT_SECRET}
+    JWT_EXPIRES_IN: ${env:JWT_EXPIRES_IN}
+    REFRESH_TOKEN_EXPIRES_IN: ${env:REFRESH_TOKEN_EXPIRES_IN}
+    DYNAMODB_TABLE: ${env:DYNAMODB_TABLE}
+    CUSTOM_AWS_REGION: ${env:AWS_REGION}
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource: 'arn:aws:dynamodb:${self:provider.region}:*:table/${env:DYNAMODB_TABLE}'
+      managedPolicies:
+        - 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+      assumeRolePolicy:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+
+functions:
+  api:
+    handler: dist/lambda.handler
+    events:
+      - http:
+          method: ANY
+          path: /
+      - http:
+          method: ANY
+          path: '{proxy+}'
+
+plugins:
+  - serverless-offline
