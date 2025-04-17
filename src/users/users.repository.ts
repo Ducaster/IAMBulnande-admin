@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { DynamoDBService } from '../database/dynamodb.service';
 import {
   GetCommand,
@@ -8,25 +8,83 @@ import {
   DeleteCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { ConfigService } from '@nestjs/config';
+import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class UsersRepository {
-  private tableName: string;
-
   constructor(
     private dynamoDBService: DynamoDBService,
     private configService: ConfigService,
-  ) {
-    this.tableName = this.configService.get<string>('DYNAMODB_TABLE');
+  ) {}
 
-    if (!this.tableName) {
-      throw new Error('DYNAMODB_TABLE 환경 변수가 설정되지 않았습니다.');
+  private getTableName(): string {
+    return this.configService.get<string>('DYNAMODB_TABLE_USERS');
+  }
+
+  async createUser(user: any) {
+    const tableName = this.getTableName();
+    const params = {
+      TableName: tableName,
+      Item: {
+        PK: `USER#${user.uid}`,
+        SK: 'METADATA',
+        uid: user.uid,
+        id: user.id,
+        password: user.password,
+        category: user.category,
+      },
+    };
+
+    try {
+      await this.dynamoDBService.getClient().send(new PutCommand(params));
+    } catch (error) {
+      console.error('사용자 생성 중 오류 발생:', error);
+      throw error;
     }
   }
 
+  async login(id: string, password: string) {
+    const tableName = this.getTableName();
+    const params = {
+      TableName: tableName,
+      FilterExpression: 'id = :id',
+      ExpressionAttributeValues: {
+        ':id': id,
+      },
+    };
+
+    const result = await this.dynamoDBService
+      .getClient()
+      .send(new ScanCommand(params));
+    const user = result.Items?.[0];
+
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    return { message: 'Login successful', uid: user.uid };
+  }
+
+  async createInitialUser(user: any) {
+    const tableName = this.getTableName();
+    const command = new PutCommand({
+      TableName: tableName,
+      Item: {
+        PK: `USER#${user.uid}`,
+        SK: 'METADATA',
+        uid: user.uid,
+        name: user.name,
+        secret: user.secret,
+        category: user.category,
+      },
+    });
+    return this.dynamoDBService.getClient().send(command);
+  }
+
   async findByName(name: string) {
+    const tableName = this.getTableName();
     const command = new ScanCommand({
-      TableName: this.tableName,
+      TableName: tableName,
       FilterExpression: '#name = :name',
       ExpressionAttributeNames: {
         '#name': 'name',
@@ -39,116 +97,51 @@ export class UsersRepository {
     return result.Items?.[0] || null;
   }
 
-  async updateUser(uid: string, updatedUser: any) {
-    console.log('Updating user:', { uid, updatedUser });
-
-    // 새로운 항목 생성 (id를 파티션 키로 사용)
-    const putCommand = new PutCommand({
-      TableName: this.tableName,
-      Item: {
-        users: updatedUser.id, // id를 새로운 파티션 키로 사용
-        name: updatedUser.name,
-        password: updatedUser.password,
-        uid: uid,
-        secret: updatedUser.secret,
-      },
-    });
-    await this.dynamoDBService.getClient().send(putCommand);
-
-    // 이전 항목 삭제 (uid를 파티션 키로 사용한 항목)
-    const deleteCommand = new DeleteCommand({
-      TableName: this.tableName,
-      Key: { users: uid },
-    });
-    await this.dynamoDBService.getClient().send(deleteCommand);
-
-    return { message: 'User updated successfully' };
-  }
-
-  async createUser(user: any) {
-    const command = new PutCommand({
-      TableName: this.tableName,
-      Item: {
-        users: user.name,
-        ...user,
-      },
-    });
-    return this.dynamoDBService.getClient().send(command);
-  }
-
-  async createInitialUser(user: any) {
-    const command = new PutCommand({
-      TableName: this.tableName,
-      Item: {
-        users: user.uid, // uid를 파티션 키로 사용
-        name: user.name,
-        secret: user.secret,
-        uid: user.uid,
-      },
-    });
-    return this.dynamoDBService.getClient().send(command);
-  }
-
   async findByUid(uid: string) {
     if (!uid) {
       return { Item: null };
     }
 
-    const command = new ScanCommand({
-      TableName: this.tableName,
-      FilterExpression: 'uid = :uid',
-      ExpressionAttributeValues: {
-        ':uid': uid,
+    const tableName = this.getTableName();
+    const command = new GetCommand({
+      TableName: tableName,
+      Key: {
+        PK: `USER#${uid}`,
+        SK: 'METADATA',
       },
     });
-    const result = await this.dynamoDBService.getClient().send(command);
-    return { Item: result.Items?.[0] };
+    return await this.dynamoDBService.getClient().send(command);
   }
 
-  async findById(id: string) {
-    if (!id) {
-      return { Item: null };
-    }
-
-    console.log('Finding user by id:', id);
-
-    // 먼저 GetCommand로 시도
-    const getCommand = new GetCommand({
-      TableName: this.tableName,
-      Key: { users: id },
-    });
-
-    const getResult = await this.dynamoDBService.getClient().send(getCommand);
-    console.log('Get result:', getResult);
-
-    if (getResult.Item) {
-      return { Item: getResult.Item };
-    }
-
-    // GetCommand로 찾지 못한 경우 ScanCommand로 시도
-    const scanCommand = new ScanCommand({
-      TableName: this.tableName,
-      FilterExpression: 'id = :id',
-      ExpressionAttributeValues: {
-        ':id': id,
-      },
-    });
-
-    const scanResult = await this.dynamoDBService.getClient().send(scanCommand);
-    console.log('Scan result:', scanResult);
-
-    return { Item: scanResult.Items?.[0] };
-  }
-
-  async updateRefreshToken(id: string, refreshToken: string) {
+  async updateRefreshToken(uid: string, refreshToken: string) {
+    const tableName = this.getTableName();
     const command = new UpdateCommand({
-      TableName: this.tableName,
-      Key: { users: id }, // id를 파티션 키로 사용
+      TableName: tableName,
+      Key: {
+        PK: `USER#${uid}`,
+        SK: 'METADATA',
+      },
       UpdateExpression: 'SET refreshToken = :rt',
       ExpressionAttributeValues: {
         ':rt': refreshToken,
       },
     });
     return this.dynamoDBService.getClient().send(command);
+  }
+
+  async findById(id: string) {
+    const tableName = this.getTableName();
+    const params = {
+      TableName: tableName,
+      FilterExpression: 'id = :id',
+      ExpressionAttributeValues: {
+        ':id': id,
+      },
+    };
+
+    const result = await this.dynamoDBService
+      .getClient()
+      .send(new ScanCommand(params));
+    return result.Items?.[0];
   }
 }

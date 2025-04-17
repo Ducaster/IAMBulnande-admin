@@ -17,43 +17,22 @@ export class AuthService {
     return uuidv4();
   }
 
-  async verifyUser(name: string, secret: string) {
-    const user = await this.usersRepository.findByName(name);
-    console.log('Found user:', user); // 디버깅을 위한 로그
-
-    if (!user) {
-      throw new UnauthorizedException('User not found');
-    }
-
-    if (user.secret === secret) {
-      return { uid: user.uid };
-    }
-
-    throw new UnauthorizedException('Invalid secret');
-  }
-
-  async registerUser(uid: string, id: string, password: string) {
-    const userResult = await this.usersRepository.findByUid(uid);
-    const user = userResult.Item;
-
-    if (!user) {
-      throw new UnauthorizedException('Invalid UID');
-    }
-
-    const existingUserWithId = await this.usersRepository.findById(id);
-    if (existingUserWithId.Item) {
+  async registerUser(id: string, password: string) {
+    // 아이디 중복 확인
+    const existingUser = await this.usersRepository.findById(id);
+    if (existingUser) {
       throw new UnauthorizedException('ID already exists');
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const updatedUser = {
-      ...user,
+    const newUser = {
+      uid: this.generateUID(),
       id,
       password: hashedPassword,
     };
 
-    await this.usersRepository.updateUser(uid, updatedUser);
-    return { message: 'User registered successfully' };
+    await this.usersRepository.createUser(newUser);
+    return { message: 'User registered successfully', id };
   }
 
   async register(userDto: any) {
@@ -65,39 +44,8 @@ export class AuthService {
   }
 
   async login(id: string, password: string) {
-    // 1단계: id와 password로 사용자 찾기
-    console.log('id:', id);
-    const userResult = await this.usersRepository.findById(id);
-    console.log('Found user by ID:', userResult); // 디버깅 로그
-
-    const user = userResult.Item;
-    if (!user) {
-      throw new UnauthorizedException('User not found');
-    }
-
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    console.log('Password valid:', isPasswordValid); // 디버깅 로그
-
-    if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid password');
-    }
-
-    // 2단계: uid로 사용자 정보 다시 조회
-    const userByUid = await this.usersRepository.findByUid(user.uid);
-    console.log('Found user by UID:', userByUid.Item); // 디버깅 로그
-
-    if (!userByUid.Item) {
-      throw new UnauthorizedException('User not found by UID');
-    }
-
-    // 3단계: uid로 토큰 생성 및 저장
+    const user = await this.usersRepository.login(id, password);
     const tokens = this.generateTokens(user.uid);
-    // 리프레시 토큰만 DB에 저장
-    await this.usersRepository.updateRefreshToken(
-      user.uid,
-      tokens.refreshToken,
-    );
-
     return {
       ...tokens,
       uid: user.uid,
@@ -105,8 +53,9 @@ export class AuthService {
   }
 
   generateTokens(uid: string) {
+    const randomValue = Math.random().toString(36).substring(2, 15);
     const accessToken = this.jwtService.sign(
-      { uid },
+      { uid, randomValue },
       {
         secret: this.configService.get('JWT_SECRET'),
         expiresIn: this.configService.get('JWT_EXPIRES_IN'),
@@ -114,7 +63,7 @@ export class AuthService {
     );
 
     const refreshToken = this.jwtService.sign(
-      { uid },
+      { uid, randomValue },
       {
         secret: this.configService.get('JWT_SECRET'),
         expiresIn: this.configService.get('REFRESH_TOKEN_EXPIRES_IN'),
@@ -130,9 +79,11 @@ export class AuthService {
         secret: this.configService.get('JWT_SECRET'),
       });
 
-      // 액세스 토큰만 새로 생성
       const accessToken = this.jwtService.sign(
-        { uid: decoded.uid },
+        {
+          uid: decoded.uid,
+          randomValue: Math.random().toString(36).substring(2, 15),
+        },
         {
           secret: this.configService.get('JWT_SECRET'),
           expiresIn: this.configService.get('JWT_EXPIRES_IN'),
@@ -141,7 +92,7 @@ export class AuthService {
 
       return {
         accessToken,
-        refreshToken, // 기존 리프레시 토큰 그대로 반환
+        refreshToken,
         uid: decoded.uid,
       };
     } catch (error) {

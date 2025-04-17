@@ -1,4 +1,4 @@
-service: univ-verse-auth
+service: iam-bulnande-admin
 
 provider:
   name: aws
@@ -8,7 +8,8 @@ provider:
     JWT_SECRET: ${env:JWT_SECRET}
     JWT_EXPIRES_IN: ${env:JWT_EXPIRES_IN}
     REFRESH_TOKEN_EXPIRES_IN: ${env:REFRESH_TOKEN_EXPIRES_IN}
-    DYNAMODB_TABLE: ${env:DYNAMODB_TABLE}
+    DYNAMODB_TABLE_USERS: IamBulnande_Users
+    DYNAMODB_TABLE_EVENTS: IamBulnande_Events
     CUSTOM_AWS_REGION: ${env:AWS_REGION}
   iam:
     role:
@@ -21,7 +22,9 @@ provider:
             - dynamodb:PutItem
             - dynamodb:UpdateItem
             - dynamodb:DeleteItem
-          Resource: 'arn:aws:dynamodb:${self:provider.region}:*:table/${env:DYNAMODB_TABLE}'
+          Resource:
+            - arn:aws:dynamodb:ap-northeast-2:${aws:accountId}:table/IamBulnande_Users
+            - arn:aws:dynamodb:ap-northeast-2:${aws:accountId}:table/IamBulnande_Events
       managedPolicies:
         - 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
       assumeRolePolicy:
@@ -39,9 +42,11 @@ functions:
       - http:
           method: ANY
           path: /
+          cors: true
       - http:
           method: ANY
           path: '{proxy+}'
+          cors: true
 
 plugins:
   - serverless-offline

@@ -5,34 +5,18 @@ import { AuthService } from './auth.service';
 export class AuthController {
   constructor(private authService: AuthService) {}
 
-  @Post('init')
-  async createInitialUser(@Body() body: { name: string; secret: string }) {
-    return await this.authService.createInitialUser(body.name, body.secret);
-  }
-
-  @Post('verify')
-  async verifyUser(@Body() body: { name: string; secret: string }) {
-    return await this.authService.verifyUser(body.name, body.secret);
-  }
-
   @Post('register')
-  async registerUser(
-    @Body() body: { uid: string; id: string; password: string },
-  ) {
-    return await this.authService.registerUser(
-      body.uid,
-      body.id,
-      body.password,
-    );
+  async registerUser(@Body() body: { id: string; password: string }) {
+    return await this.authService.registerUser(body.id, body.password);
   }
 
   @Post('login')
-  login(@Body() { id, password }: { id: string; password: string }) {
-    return this.authService.login(id, password);
+  async login(@Body() { id, password }: { id: string; password: string }) {
+    return await this.authService.login(id, password);
   }
 
   @Post('refresh-token')
-  refreshToken(@Body() { refreshToken }: { refreshToken: string }) {
-    return this.authService.refreshAccessToken(refreshToken);
+  async refreshToken(@Body() { refreshToken }: { refreshToken: string }) {
+    return await this.authService.refreshAccessToken(refreshToken);
   }
 }

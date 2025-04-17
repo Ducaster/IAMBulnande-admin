@@ -5,7 +5,7 @@
     "ApiLogGroup": {
       "Type": "AWS::Logs::LogGroup",
       "Properties": {
-        "LogGroupName": "/aws/lambda/univ-verse-auth-dev-api"
+        "LogGroupName": "/aws/lambda/iam-bulnande-admin-prod-api"
       }
     },
     "IamRoleLambdaExecution": {
@@ -33,8 +33,8 @@
               "Fn::Join": [
                 "-",
                 [
-                  "univ-verse-auth",
-                  "dev",
+                  "iam-bulnande-admin",
+                  "prod",
                   "lambda"
                 ]
               ]
@@ -51,7 +51,7 @@
                   ],
                   "Resource": [
                     {
-                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/univ-verse-auth-dev*:*"
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/iam-bulnande-admin-prod*:*"
                     }
                   ]
                 },
@@ -62,7 +62,7 @@
                   ],
                   "Resource": [
                     {
-                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/univ-verse-auth-dev*:*:*"
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/iam-bulnande-admin-prod*:*:*"
                     }
                   ]
                 },
@@ -76,7 +76,10 @@
                     "dynamodb:UpdateItem",
                     "dynamodb:DeleteItem"
                   ],
-                  "Resource": "arn:aws:dynamodb:ap-northeast-2:*:table/university-users-table"
+                  "Resource": [
+                    "arn:aws:dynamodb:ap-northeast-2:438465123063:table/IamBulnande_Users",
+                    "arn:aws:dynamodb:ap-northeast-2:438465123063:table/IamBulnande_Events"
+                  ]
                 }
               ]
             }
@@ -87,8 +90,8 @@
           "Fn::Join": [
             "-",
             [
-              "univ-verse-auth",
-              "dev",
+              "iam-bulnande-admin",
+              "prod",
               {
                 "Ref": "AWS::Region"
               },
@@ -106,19 +109,20 @@
       "Properties": {
         "Code": {
           "S3Bucket": "serverless-framework-deployments-ap-northeast-2-f83e42d6-9e08",
-          "S3Key": "serverless/univ-verse-auth/dev/1739293761847-2025-02-11T17:09:21.847Z/univ-verse-auth.zip"
+          "S3Key": "serverless/iam-bulnande-admin/prod/1744881158884-2025-04-17T09:12:38.884Z/iam-bulnande-admin.zip"
         },
         "Handler": "dist/lambda.handler",
         "Runtime": "nodejs22.x",
-        "FunctionName": "univ-verse-auth-dev-api",
+        "FunctionName": "iam-bulnande-admin-prod-api",
         "MemorySize": 1024,
         "Timeout": 6,
         "Environment": {
           "Variables": {
-            "JWT_SECRET": "university-secret-key",
+            "JWT_SECRET": "waveon-secret-key",
             "JWT_EXPIRES_IN": "1h",
             "REFRESH_TOKEN_EXPIRES_IN": "4w",
-            "DYNAMODB_TABLE": "university-users-table",
+            "DYNAMODB_TABLE_USERS": "IamBulnande_Users",
+            "DYNAMODB_TABLE_EVENTS": "IamBulnande_Events",
             "CUSTOM_AWS_REGION": "ap-northeast-2"
           }
         },
@@ -133,20 +137,20 @@
         "ApiLogGroup"
       ]
     },
-    "ApiLambdaVersionceE3UBMOTZTxiSQYXqYlbJHv07Iuc4GA6oVMLAbGmU": {
+    "ApiLambdaVersion53De62jWUDP7YDbAS6o29xIqJ6Dyicp6gHqTFG358BA": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "ApiLambdaFunction"
         },
-        "CodeSha256": "A+wLAU3P2hybU+Mfantp0Qh6SKiGyLbpPtbrdXhsn78="
+        "CodeSha256": "4JE5buQ3CNf2UcF6ea0JrO1cCC7bWOCvCjfQV3L8GdM="
       }
     },
     "ApiGatewayRestApi": {
       "Type": "AWS::ApiGateway::RestApi",
       "Properties": {
-        "Name": "dev-univ-verse-auth",
+        "Name": "prod-iam-bulnande-admin",
         "EndpointConfiguration": {
           "Types": [
             "EDGE"
@@ -165,6 +169,99 @@
           ]
         },
         "PathPart": "{proxy+}",
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        }
+      }
+    },
+    "ApiGatewayMethodOptions": {
+      "Type": "AWS::ApiGateway::Method",
+      "Properties": {
+        "AuthorizationType": "NONE",
+        "HttpMethod": "OPTIONS",
+        "MethodResponses": [
+          {
+            "StatusCode": "200",
+            "ResponseParameters": {
+              "method.response.header.Access-Control-Allow-Origin": true,
+              "method.response.header.Access-Control-Allow-Headers": true,
+              "method.response.header.Access-Control-Allow-Methods": true
+            },
+            "ResponseModels": {}
+          }
+        ],
+        "RequestParameters": {},
+        "Integration": {
+          "Type": "MOCK",
+          "RequestTemplates": {
+            "application/json": "{statusCode:200}"
+          },
+          "ContentHandling": "CONVERT_TO_TEXT",
+          "IntegrationResponses": [
+            {
+              "StatusCode": "200",
+              "ResponseParameters": {
+                "method.response.header.Access-Control-Allow-Origin": "'*'",
+                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,X-Amzn-Trace-Id'",
+                "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,DELETE,GET,HEAD,PATCH,POST,PUT'"
+              },
+              "ResponseTemplates": {
+                "application/json": ""
+              }
+            }
+          ]
+        },
+        "ResourceId": {
+          "Fn::GetAtt": [
+            "ApiGatewayRestApi",
+            "RootResourceId"
+          ]
+        },
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        }
+      }
+    },
+    "ApiGatewayMethodProxyVarOptions": {
+      "Type": "AWS::ApiGateway::Method",
+      "Properties": {
+        "AuthorizationType": "NONE",
+        "HttpMethod": "OPTIONS",
+        "MethodResponses": [
+          {
+            "StatusCode": "200",
+            "ResponseParameters": {
+              "method.response.header.Access-Control-Allow-Origin": true,
+              "method.response.header.Access-Control-Allow-Headers": true,
+              "method.response.header.Access-Control-Allow-Methods": true
+            },
+            "ResponseModels": {}
+          }
+        ],
+        "RequestParameters": {},
+        "Integration": {
+          "Type": "MOCK",
+          "RequestTemplates": {
+            "application/json": "{statusCode:200}"
+          },
+          "ContentHandling": "CONVERT_TO_TEXT",
+          "IntegrationResponses": [
+            {
+              "StatusCode": "200",
+              "ResponseParameters": {
+                "method.response.header.Access-Control-Allow-Origin": "'*'",
+                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,X-Amzn-Trace-Id'",
+                "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,DELETE,GET,HEAD,PATCH,POST,PUT'"
+              },
+              "ResponseTemplates": {
+                "application/json": ""
+              }
+            }
+          ]
+        },
+        "ResourceId": {
+          "Ref": "ApiGatewayResourceProxyVar"
+        },
         "RestApiId": {
           "Ref": "ApiGatewayRestApi"
         }
@@ -265,15 +362,17 @@
         "ApiLambdaPermissionApiGateway"
       ]
     },
-    "ApiGatewayDeployment1739293752812": {
+    "ApiGatewayDeployment1744881149294": {
       "Type": "AWS::ApiGateway::Deployment",
       "Properties": {
         "RestApiId": {
           "Ref": "ApiGatewayRestApi"
         },
-        "StageName": "dev"
+        "StageName": "prod"
       },
       "DependsOn": [
+        "ApiGatewayMethodOptions",
+        "ApiGatewayMethodProxyVarOptions",
         "ApiGatewayMethodAny",
         "ApiGatewayMethodProxyVarAny"
       ]
@@ -320,16 +419,16 @@
     "ServerlessDeploymentBucketName": {
       "Value": "serverless-framework-deployments-ap-northeast-2-f83e42d6-9e08",
       "Export": {
-        "Name": "sls-univ-verse-auth-dev-ServerlessDeploymentBucketName"
+        "Name": "sls-iam-bulnande-admin-prod-ServerlessDeploymentBucketName"
       }
     },
     "ApiLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "ApiLambdaVersionceE3UBMOTZTxiSQYXqYlbJHv07Iuc4GA6oVMLAbGmU"
+        "Ref": "ApiLambdaVersion53De62jWUDP7YDbAS6o29xIqJ6Dyicp6gHqTFG358BA"
       },
       "Export": {
-        "Name": "sls-univ-verse-auth-dev-ApiLambdaFunctionQualifiedArn"
+        "Name": "sls-iam-bulnande-admin-prod-ApiLambdaFunctionQualifiedArn"
       }
     },
     "ServiceEndpoint": {
@@ -350,12 +449,12 @@
             {
               "Ref": "AWS::URLSuffix"
             },
-            "/dev"
+            "/prod"
           ]
         ]
       },
       "Export": {
-        "Name": "sls-univ-verse-auth-dev-ServiceEndpoint"
+        "Name": "sls-iam-bulnande-admin-prod-ServiceEndpoint"
       }
     }
   }
