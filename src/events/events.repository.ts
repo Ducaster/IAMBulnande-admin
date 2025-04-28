@@ -59,20 +59,99 @@ export class EventsRepository {
     return result.Item;
   }
 
-  async getAllEvents() {
+  async getAllEvents(options: {
+    limit?: number;
+    lastEvaluatedKey?: string;
+    homepage?: string;
+  }) {
+    const { lastEvaluatedKey, homepage } = options;
+    // limit 값이 있으면 정수로 확실하게 변환, 없으면 기본값 10 사용
+    const limit = options.limit ? parseInt(String(options.limit), 10) : 10;
+
     const tableName = this.getTableName();
-    const params = {
-      TableName: tableName,
-      FilterExpression: 'SK = :sk',
-      ExpressionAttributeValues: {
-        ':sk': 'METADATA',
-      },
+
+    // 기본 필터: SK = 'METADATA'
+    let filterExpression = 'SK = :sk';
+    const expressionAttributeValues: Record<string, any> = {
+      ':sk': 'METADATA',
     };
+
+    // homepage 필터 추가
+    if (homepage) {
+      filterExpression += ' AND homepage = :homepage';
+      expressionAttributeValues[':homepage'] = homepage;
+    }
+
+    const params: any = {
+      TableName: tableName,
+      FilterExpression: filterExpression,
+      ExpressionAttributeValues: expressionAttributeValues,
+      // 필터링 후 충분한 결과를 얻기 위해 더 많은 항목을 가져옵니다
+      Limit: limit * 3,
+    };
+
+    // 시작 위치 설정 (마지막 페이지 키가 제공된 경우)
+    if (lastEvaluatedKey) {
+      try {
+        params.ExclusiveStartKey = JSON.parse(
+          Buffer.from(lastEvaluatedKey, 'base64').toString(),
+        );
+      } catch (error) {
+        console.error('LastEvaluatedKey 파싱 오류:', error);
+      }
+    }
 
     const result = await this.dynamoDBService
       .getClient()
       .send(new ScanCommand(params));
-    return result.Items;
+
+    let items = result.Items || [];
+
+    // project_date 기준으로 최신순 정렬 (내림차순)
+    items = items.sort((a, b) => {
+      // 날짜 비교 (내림차순: 최신 날짜가 먼저)
+      // project_date가 있는 경우 이전 버전 호환성을 위해 함께 고려
+      const aDate = a.start_date || a.project_date;
+      const bDate = b.start_date || b.project_date;
+
+      if (aDate && bDate) {
+        return aDate < bDate ? 1 : aDate > bDate ? -1 : 0;
+      }
+      return 0;
+    });
+
+    // 총 항목 수
+    const totalItems = items.length;
+
+    // 요청한 limit 만큼만 반환
+    const limitedItems = items.slice(0, limit);
+
+    // 더 많은 항목이 있는지 확인
+    const hasMore = totalItems > limitedItems.length;
+
+    // 다음 페이지 키 생성
+    let nextPageKey = null;
+
+    if (hasMore) {
+      // 더 많은 항목이 있으면, 마지막으로 반환된 항목을 기준으로 다음 페이지 키 생성
+      if (limitedItems.length > 0) {
+        const lastItem = limitedItems[limitedItems.length - 1];
+        // DynamoDB의 LastEvaluatedKey 형식에 맞춰 키 생성
+        const customKey = {
+          PK: lastItem.PK,
+          SK: lastItem.SK,
+        };
+        nextPageKey = Buffer.from(JSON.stringify(customKey)).toString('base64');
+      }
+    }
+
+    return {
+      items: limitedItems,
+      count: limitedItems.length,
+      nextPageKey,
+      totalCount: totalItems,
+      hasMore,
+    };
   }
 
   async updateEvent(uid: string, eventData: Partial<Event>) {

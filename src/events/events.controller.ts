@@ -8,6 +8,7 @@ import {
   Delete,
   UseGuards,
   Request,
+  Query,
 } from '@nestjs/common';
 import { EventsService } from './events.service';
 import { Event } from './event.entity';
@@ -24,6 +25,7 @@ export class EventsController {
     @Body()
     eventData: Omit<Event, 'uid' | 'created_at' | 'updated_at'> & {
       project_datetime?: string;
+      project_date?: string;
     },
   ) {
     console.log('인증된 사용자:', req.user);
@@ -31,8 +33,19 @@ export class EventsController {
   }
 
   @Get()
-  async getAllEvents() {
-    return await this.eventsService.getAllEvents();
+  async getAllEvents(
+    @Query('limit') limitStr?: string,
+    @Query('nextPageKey') nextPageKey?: string,
+    @Query('homepage') homepage?: string,
+  ) {
+    // 문자열로 들어온 limit을 정수로 변환
+    const limit = limitStr ? parseInt(limitStr, 10) : undefined;
+
+    return await this.eventsService.getAllEvents({
+      limit,
+      lastKey: nextPageKey,
+      homepage,
+    });
   }
 
   @Get(':uid')
@@ -44,7 +57,11 @@ export class EventsController {
   @UseGuards(JwtAuthGuard)
   async updateEvent(
     @Param('uid') uid: string,
-    @Body() eventData: Partial<Event> & { project_datetime?: string },
+    @Body()
+    eventData: Partial<Event> & {
+      project_datetime?: string;
+      project_date?: string;
+    },
   ) {
     return await this.eventsService.updateEvent(uid, eventData);
   }

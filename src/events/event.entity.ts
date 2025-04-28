@@ -2,10 +2,12 @@ export class Event {
   uid: string;
   homepage: string;
   title: string;
-  project_date: string;
+  start_date: string;
+  end_date?: string;
   project_time: string;
   place: string;
   project_category: string;
+  duration_type: 'long' | 'short';
   manager?: string;
   staff?: string[];
   speaker?: string[];

@@ -1,6 +1,6 @@
 {
   "/Users/inthek/Documents/react_repo/bulnande-auth/serverless.yml": {
-    "versionFramework": "4.13.0",
+    "versionFramework": "4.14.1",
     "servicePath": "/Users/inthek/Documents/react_repo/bulnande-auth/serverless.yml",
     "serviceConfigFileName": "serverless.yml",
     "service": {
@@ -166,7 +166,7 @@
               "Properties": {
                 "Code": {
                   "S3Bucket": "serverless-framework-deployments-ap-northeast-2-f83e42d6-9e08",
-                  "S3Key": "serverless/iam-bulnande-admin/prod/1744881158884-2025-04-17T09:12:38.884Z/iam-bulnande-admin.zip"
+                  "S3Key": "serverless/iam-bulnande-admin/prod/1745823678605-2025-04-28T07:01:18.605Z/iam-bulnande-admin.zip"
                 },
                 "Handler": "dist/lambda.handler",
                 "Runtime": "nodejs22.x",
@@ -194,14 +194,14 @@
                 "ApiLogGroup"
               ]
             },
-            "ApiLambdaVersion53De62jWUDP7YDbAS6o29xIqJ6Dyicp6gHqTFG358BA": {
+            "ApiLambdaVersionE0zOOllRN6tYr7e60x9HkldSPs0ymFh1wtxgah1s": {
               "Type": "AWS::Lambda::Version",
               "DeletionPolicy": "Retain",
               "Properties": {
                 "FunctionName": {
                   "Ref": "ApiLambdaFunction"
                 },
-                "CodeSha256": "4JE5buQ3CNf2UcF6ea0JrO1cCC7bWOCvCjfQV3L8GdM="
+                "CodeSha256": "e0QN/m/8pktwovUopkyglgeX0IArliE4Pr0oLjWHgNg="
               }
             },
             "ApiGatewayRestApi": {
@@ -419,7 +419,7 @@
                 "ApiLambdaPermissionApiGateway"
               ]
             },
-            "ApiGatewayDeployment1744881149294": {
+            "ApiGatewayDeployment1745823668333": {
               "Type": "AWS::ApiGateway::Deployment",
               "Properties": {
                 "RestApiId": {
@@ -482,7 +482,7 @@
             "ApiLambdaFunctionQualifiedArn": {
               "Description": "Current Lambda function version",
               "Value": {
-                "Ref": "ApiLambdaVersion53De62jWUDP7YDbAS6o29xIqJ6Dyicp6gHqTFG358BA"
+                "Ref": "ApiLambdaVersionE0zOOllRN6tYr7e60x9HkldSPs0ymFh1wtxgah1s"
               },
               "Export": {
                 "Name": "sls-iam-bulnande-admin-prod-ApiLambdaFunctionQualifiedArn"
@@ -577,7 +577,7 @@
           "timeout": 6,
           "runtime": "nodejs22.x",
           "vpc": {},
-          "versionLogicalId": "ApiLambdaVersion53De62jWUDP7YDbAS6o29xIqJ6Dyicp6gHqTFG358BA"
+          "versionLogicalId": "ApiLambdaVersionE0zOOllRN6tYr7e60x9HkldSPs0ymFh1wtxgah1s"
         }
       },
       "plugins": [
@@ -745,7 +745,7 @@
             "Properties": {
               "Code": {
                 "S3Bucket": "serverless-framework-deployments-ap-northeast-2-f83e42d6-9e08",
-                "S3Key": "serverless/iam-bulnande-admin/prod/1744881158884-2025-04-17T09:12:38.884Z/iam-bulnande-admin.zip"
+                "S3Key": "serverless/iam-bulnande-admin/prod/1745823678605-2025-04-28T07:01:18.605Z/iam-bulnande-admin.zip"
               },
               "Handler": "dist/lambda.handler",
               "Runtime": "nodejs22.x",
@@ -773,14 +773,14 @@
               "ApiLogGroup"
             ]
           },
-          "ApiLambdaVersion53De62jWUDP7YDbAS6o29xIqJ6Dyicp6gHqTFG358BA": {
+          "ApiLambdaVersionE0zOOllRN6tYr7e60x9HkldSPs0ymFh1wtxgah1s": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "ApiLambdaFunction"
               },
-              "CodeSha256": "4JE5buQ3CNf2UcF6ea0JrO1cCC7bWOCvCjfQV3L8GdM="
+              "CodeSha256": "e0QN/m/8pktwovUopkyglgeX0IArliE4Pr0oLjWHgNg="
             }
           },
           "ApiGatewayRestApi": {
@@ -998,7 +998,7 @@
               "ApiLambdaPermissionApiGateway"
             ]
           },
-          "ApiGatewayDeployment1744881149294": {
+          "ApiGatewayDeployment1745823668333": {
             "Type": "AWS::ApiGateway::Deployment",
             "Properties": {
               "RestApiId": {
@@ -1061,7 +1061,7 @@
           "ApiLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "ApiLambdaVersion53De62jWUDP7YDbAS6o29xIqJ6Dyicp6gHqTFG358BA"
+              "Ref": "ApiLambdaVersionE0zOOllRN6tYr7e60x9HkldSPs0ymFh1wtxgah1s"
             },
             "Export": {
               "Name": "sls-iam-bulnande-admin-prod-ApiLambdaFunctionQualifiedArn"
@@ -1121,12 +1121,12 @@
     "serviceProviderAwsCfStackName": "iam-bulnande-admin-prod",
     "serviceProviderAwsCfStackId": "arn:aws:cloudformation:ap-northeast-2:438465123063:stack/iam-bulnande-admin-prod/1dee4da0-1b6c-11f0-9cf5-02fbe0e7b0d9",
     "serviceProviderAwsCfStackCreated": "2025-04-17T09:12:42.193Z",
-    "serviceProviderAwsCfStackUpdated": null,
-    "serviceProviderAwsCfStackStatus": "CREATE_COMPLETE",
+    "serviceProviderAwsCfStackUpdated": "2025-04-28T03:23:01.255Z",
+    "serviceProviderAwsCfStackStatus": "UPDATE_COMPLETE",
     "serviceProviderAwsCfStackOutputs": [
       {
         "OutputKey": "ApiLambdaFunctionQualifiedArn",
-        "OutputValue": "arn:aws:lambda:ap-northeast-2:438465123063:function:iam-bulnande-admin-prod-api:10",
+        "OutputValue": "arn:aws:lambda:ap-northeast-2:438465123063:function:iam-bulnande-admin-prod-api:11",
         "Description": "Current Lambda function version",
         "ExportName": "sls-iam-bulnande-admin-prod-ApiLambdaFunctionQualifiedArn"
       },
@@ -1253,7 +1253,7 @@
           "Properties": {
             "Code": {
               "S3Bucket": "serverless-framework-deployments-ap-northeast-2-f83e42d6-9e08",
-              "S3Key": "serverless/iam-bulnande-admin/prod/1744881158884-2025-04-17T09:12:38.884Z/iam-bulnande-admin.zip"
+              "S3Key": "serverless/iam-bulnande-admin/prod/1745823678605-2025-04-28T07:01:18.605Z/iam-bulnande-admin.zip"
             },
             "Handler": "dist/lambda.handler",
             "Runtime": "nodejs22.x",
@@ -1281,14 +1281,14 @@
             "ApiLogGroup"
           ]
         },
-        "ApiLambdaVersion53De62jWUDP7YDbAS6o29xIqJ6Dyicp6gHqTFG358BA": {
+        "ApiLambdaVersionE0zOOllRN6tYr7e60x9HkldSPs0ymFh1wtxgah1s": {
           "Type": "AWS::Lambda::Version",
           "DeletionPolicy": "Retain",
           "Properties": {
             "FunctionName": {
               "Ref": "ApiLambdaFunction"
             },
-            "CodeSha256": "4JE5buQ3CNf2UcF6ea0JrO1cCC7bWOCvCjfQV3L8GdM="
+            "CodeSha256": "e0QN/m/8pktwovUopkyglgeX0IArliE4Pr0oLjWHgNg="
           }
         },
         "ApiGatewayRestApi": {
@@ -1506,7 +1506,7 @@
             "ApiLambdaPermissionApiGateway"
           ]
         },
-        "ApiGatewayDeployment1744881149294": {
+        "ApiGatewayDeployment1745823668333": {
           "Type": "AWS::ApiGateway::Deployment",
           "Properties": {
             "RestApiId": {
@@ -1569,7 +1569,7 @@
         "ApiLambdaFunctionQualifiedArn": {
           "Description": "Current Lambda function version",
           "Value": {
-            "Ref": "ApiLambdaVersion53De62jWUDP7YDbAS6o29xIqJ6Dyicp6gHqTFG358BA"
+            "Ref": "ApiLambdaVersionE0zOOllRN6tYr7e60x9HkldSPs0ymFh1wtxgah1s"
           },
           "Export": {
             "Name": "sls-iam-bulnande-admin-prod-ApiLambdaFunctionQualifiedArn"
