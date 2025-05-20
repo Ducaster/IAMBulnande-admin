@@ -11,7 +11,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { EventsService } from './events.service';
-import { Event } from './event.entity';
+import { Event, Session } from './event.entity';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('/api/v1/events')
@@ -37,14 +37,18 @@ export class EventsController {
     @Query('limit') limitStr?: string,
     @Query('nextPageKey') nextPageKey?: string,
     @Query('homepage') homepage?: string,
+    @Query('all') allStr?: string,
   ) {
     // 문자열로 들어온 limit을 정수로 변환
     const limit = limitStr ? parseInt(limitStr, 10) : undefined;
+    // 문자열로 들어온 all을 boolean으로 변환 ('true'인 경우만 true로 처리)
+    const all = allStr === 'true';
 
     return await this.eventsService.getAllEvents({
       limit,
       lastKey: nextPageKey,
       homepage,
+      all,
     });
   }
 

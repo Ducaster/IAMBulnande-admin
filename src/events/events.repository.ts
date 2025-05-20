@@ -63,10 +63,17 @@ export class EventsRepository {
     limit?: number;
     lastEvaluatedKey?: string;
     homepage?: string;
+    all?: boolean;
   }) {
-    const { lastEvaluatedKey, homepage } = options;
-    // limit 값이 있으면 정수로 확실하게 변환, 없으면 기본값 10 사용
-    const limit = options.limit ? parseInt(String(options.limit), 10) : 10;
+    const { lastEvaluatedKey, homepage, all } = options;
+
+    // all=true이면 매우 큰 limit 값을 사용하여 사실상 전체 데이터를 가져옵니다
+    // 그렇지 않으면 지정된 limit 또는 기본값 10을 사용합니다
+    const limit = all
+      ? 1000 // 매우 큰 값으로 설정 (DynamoDB에서 한 번에 가져올 수 있는 최대치에 가까운 값)
+      : options.limit
+        ? parseInt(String(options.limit), 10)
+        : 10;
 
     const tableName = this.getTableName();
 
@@ -86,8 +93,7 @@ export class EventsRepository {
       TableName: tableName,
       FilterExpression: filterExpression,
       ExpressionAttributeValues: expressionAttributeValues,
-      // 필터링 후 충분한 결과를 얻기 위해 더 많은 항목을 가져옵니다
-      Limit: limit * 3,
+      Limit: all ? undefined : limit * 3, // all=true일 경우 Limit을 설정하지 않음
     };
 
     // 시작 위치 설정 (마지막 페이지 키가 제공된 경우)
@@ -101,11 +107,29 @@ export class EventsRepository {
       }
     }
 
-    const result = await this.dynamoDBService
-      .getClient()
-      .send(new ScanCommand(params));
+    // all=true이고 데이터가 많은 경우 여러 번 스캔해야 할 수 있습니다
+    let allItems: any[] = [];
+    let result;
 
-    let items = result.Items || [];
+    do {
+      result = await this.dynamoDBService
+        .getClient()
+        .send(new ScanCommand(params));
+
+      if (result.Items && result.Items.length > 0) {
+        allItems = [...allItems, ...result.Items];
+      }
+
+      // 다음 페이지가 있고 all=true인 경우 계속 스캔
+      if (result.LastEvaluatedKey && all) {
+        params.ExclusiveStartKey = result.LastEvaluatedKey;
+      } else {
+        break;
+      }
+    } while (true);
+
+    // 사용할 아이템 배열 결정
+    let items = all ? allItems : result?.Items || [];
 
     // project_date 기준으로 최신순 정렬 (내림차순)
     items = items.sort((a, b) => {
@@ -123,13 +147,13 @@ export class EventsRepository {
     // 총 항목 수
     const totalItems = items.length;
 
-    // 요청한 limit 만큼만 반환
-    const limitedItems = items.slice(0, limit);
+    // all=true인 경우 모든 항목을 반환, 그렇지 않으면 제한된 개수만 반환
+    const limitedItems = all ? items : items.slice(0, limit);
 
     // 더 많은 항목이 있는지 확인
-    const hasMore = totalItems > limitedItems.length;
+    const hasMore = !all && totalItems > limitedItems.length;
 
-    // 다음 페이지 키 생성
+    // 다음 페이지 키 생성 (all=true인 경우에는 nextPageKey를 생성하지 않음)
     let nextPageKey = null;
 
     if (hasMore) {

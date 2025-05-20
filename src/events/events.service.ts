@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { EventsRepository } from './events.repository';
-import { Event } from './event.entity';
+import { Event, Session } from './event.entity';
 import { v4 as uuidv4 } from 'uuid';
 import { getCurrentKSTDateISOString } from '../utils/date.utils';
 
@@ -42,6 +42,36 @@ export class EventsService {
       eventDataToSave.duration_type = 'short';
     }
 
+    // 'long' 타입이고 sessions 배열이 있는 경우 회차 번호 검증 및 정리
+    if (
+      eventDataToSave.duration_type === 'long' &&
+      Array.isArray(eventDataToSave.sessions)
+    ) {
+      // 회차 번호가 없는 경우 순차적으로 번호 부여
+      eventDataToSave.sessions = eventDataToSave.sessions.map(
+        (session, index) => {
+          if (!session.number) {
+            return { ...session, number: index + 1 };
+          }
+          return session;
+        },
+      );
+    }
+    // 'long' 타입이지만 sessions 배열이 없는 경우 빈 배열 초기화
+    else if (
+      eventDataToSave.duration_type === 'long' &&
+      !eventDataToSave.sessions
+    ) {
+      eventDataToSave.sessions = [];
+    }
+    // 'short' 타입인데 sessions 배열이 있는 경우, 무시 (제거)
+    else if (
+      eventDataToSave.duration_type === 'short' &&
+      eventDataToSave.sessions
+    ) {
+      delete eventDataToSave.sessions;
+    }
+
     const event: Event = {
       ...(eventDataToSave as any),
       uid: uuidv4(),
@@ -55,11 +85,13 @@ export class EventsService {
     limit?: number;
     lastKey?: string;
     homepage?: string;
+    all?: boolean;
   }) {
     return await this.eventsRepository.getAllEvents({
       limit: options.limit,
       lastEvaluatedKey: options.lastKey,
       homepage: options.homepage,
+      all: options.all,
     });
   }
 
@@ -91,17 +123,46 @@ export class EventsService {
       delete eventDataToUpdate.project_date;
     }
 
-    if (
-      eventDataToUpdate.duration_type === 'long' &&
-      !eventDataToUpdate.end_date
-    ) {
-      const currentEvent = await this.eventsRepository.getEvent(uid);
-      const startDate = new Date(
-        eventDataToUpdate.start_date || currentEvent.start_date,
-      );
-      const endDate = new Date(startDate);
-      endDate.setDate(startDate.getDate() + 7);
-      eventDataToUpdate.end_date = endDate.toISOString().split('T')[0];
+    // 'long' 타입으로 변경하거나, 이미 'long' 타입인 경우
+    if (eventDataToUpdate.duration_type === 'long') {
+      // end_date가 설정되지 않은 경우 자동 설정
+      if (!eventDataToUpdate.end_date) {
+        const currentEvent = await this.eventsRepository.getEvent(uid);
+        const startDate = new Date(
+          eventDataToUpdate.start_date || currentEvent.start_date,
+        );
+        const endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + 7);
+        eventDataToUpdate.end_date = endDate.toISOString().split('T')[0];
+      }
+
+      // 'long' 타입이고 sessions 배열이 있는 경우 회차 번호 검증 및 정리
+      if (Array.isArray(eventDataToUpdate.sessions)) {
+        // 회차 번호가 없는 경우 순차적으로 번호 부여
+        eventDataToUpdate.sessions = eventDataToUpdate.sessions.map(
+          (session, index) => {
+            if (!session.number) {
+              return { ...session, number: index + 1 };
+            }
+            return session;
+          },
+        );
+      }
+      // 기존 이벤트가 'long' 타입이고 sessions 배열이 현재 요청에 없는 경우
+      else if (eventDataToUpdate.sessions === undefined) {
+        const currentEvent = await this.eventsRepository.getEvent(uid);
+
+        // 현재 이벤트가 'short' 타입에서 'long' 타입으로 변경되는 경우
+        if (currentEvent.duration_type === 'short') {
+          eventDataToUpdate.sessions = [];
+        }
+        // 그렇지 않으면 기존 sessions 배열 유지 (eventDataToUpdate에 포함시키지 않음)
+      }
+    }
+    // 'short' 타입으로 변경하는 경우
+    else if (eventDataToUpdate.duration_type === 'short') {
+      // 'short' 타입에서는 sessions 필드를 비움
+      eventDataToUpdate.sessions = undefined;
     }
 
     const updatedEvent = {
